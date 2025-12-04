@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Daily Muse</title>
+  <style>
+    body { font-family: sans-serif; max-width: 600px; margin: 40px auto; }
+    input, button { padding: 10px; font-size: 16px; }
+    button { cursor: pointer; }
+    #result { white-space: pre-wrap; margin-top: 20px; padding: 15px; background: #f3f3f3; border-radius: 8px; }
+  </style>
+</head>
+<body>
+
+  <h1>Daily Muse – AI 灵感生成器</h1>
+
+  <p>输入一个主题，我将为你生成灵感：</p>
+
+  <input id="prompt" placeholder="例如：写作开头、今日思考…" style="width: 70%" />
+  <button onclick="generate()">生成</button>
+
+  <div id="result"></div>
+
+  <script>
+    async function generate() {
+      const prompt = document.getElementById("prompt").value.trim();
+      const resultBox = document.getElementById("result");
+
+      if (!prompt) {
+        resultBox.textContent = "请输入内容";
+        return;
+      }
+
+      resultBox.textContent = "生成中，请稍候…";
+
+      const res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt }),
+      });
+
+      const data = await res.json();
+      resultBox.textContent = data.text || "生成失败，请稍后再试。";
+    }
+  </script>
+
+</body>
+</html>
