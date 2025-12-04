@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Daily Muse - 灵感转小红书笔记</title>
+  <!-- 引入外部资源 -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+  
+  <!-- Tailwind配置 -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            // 北欧风格莫兰迪色调
+            primary: '#9FA8A3', // 浅灰绿
+            secondary: '#D8C3A5', // 浅米色
+            accent: '#8E7C93', // 淡紫灰
+            neutral: '#F8F5F2', // 奶油白
+            dark: '#595959', // 深灰
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+          },
+          boxShadow: {
+            'nordic': '0 4px 20px rgba(0, 0, 0, 0.05)',
+          }
+        },
+      }
+    }
+  </script>
+  
+  <!-- 自定义样式 -->
+  <style type="text/tailwindcss">
+    @layer utilities {
+      .content-auto {
+        content-visibility: auto;
+      }
+      .nordic-border {
+        border: 1px solid rgba(159, 168, 163, 0.1);
+      }
+      .text-balance {
+        text-wrap: balance;
+      }
+      .scrollbar-hide::-webkit-scrollbar {
+        display: none;
+      }
+      .scrollbar-hide {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
+    }
+    
+    /* 全局样式 */
+    body {
+      background-color: #F8F5F2;
+      color: #595959;
+      font-family: 'Inter', sans-serif;
+    }
+    
+    /* 动画效果 */
+    .slide-up {
+      animation: slideUp 0.3s ease-out;
+    }
+    
+    @keyframes slideUp {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    
+    .fade-in {
+      animation: fadeIn 0.5s ease-out;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    
+    /* 输入框焦点样式 */
+    .input-focus:focus {
+      border-color: #8E7C93;
+      box-shadow: 0 0 0 2px rgba(142, 124, 147, 0.2);
+    }
+  </style>
+</head>
+
+<body class="min-h-screen flex flex-col">
+  <!-- 顶部导航栏 -->
+  <header class="sticky top-0 z-50 bg-neutral/95 backdrop-blur-sm shadow-nordic">
+    <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <div class="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center">
+          <i class="fa fa-lightbulb-o text-accent text-lg"></i>
+        </div>
+        <h1 class="text-xl font-medium text-dark">Daily Muse</h1>
+      </div>
+      
+      <nav class="flex items-center gap-4">
+        <button id="homeBtn" class="text-dark/80 hover:text-accent transition-colors">
+          <i class="fa fa-home text-lg"></i>
+        </button>
+        <button id="savedBtn" class="text-dark/80 hover:text-accent transition-colors">
+          <i class="fa fa-bookmark-o text-lg"></i>
+        </button>
+        <button id="profileBtn" class="w-8 h-8 rounded-full bg-secondary/30 flex items-center justify-center">
+          <i class="fa fa-user-o text-dark/70"></i>
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- 主内容区 -->
+  <main class="flex-1 container mx-auto px-4 py-6">
+    <!-- 首页/灵感记录页面 -->
+    <section id="inspirationPage" class="slide-up">
+      <div class="max-w-2xl mx-auto">
+        <h2 class="text-[clamp(1.5rem,3vw,2rem)] font-medium text-dark mb-6">记录你的灵感</h2>
+        
+        <!-- 灵感输入卡片 -->
+        <div class="bg-white rounded-xl shadow-nordic p-5 mb-6 nordic-border">
+          <div class="mb-4">
+            <label for="inspirationText" class="block text-dark/80 mb-2 text-sm">我的所思所想</label>
+            <textarea 
+              id="inspirationText" 
+              class="w-full h-40 rounded-lg nordic-border p-3 input-focus resize-none transition-all focus:outline-none text-dark"
+              placeholder="在这里记录下你今天的感悟、观察或想法..."></textarea>
+          </div>
+          
+          <!-- 链接添加区域 -->
+          <div class="mb-4">
+            <label class="block text-dark/80 mb-2 text-sm">相关链接 (可选)</label>
+            <div class="flex gap-2 mb-3">
+              <input 
+                type="url" 
+                id="linkInput" 
+                class="flex-1 rounded-lg nordic-border p-3 input-focus focus:outline-none text-dark"
+                placeholder="添加播客、视频或社交媒体链接">
+              <button id="addLinkBtn" class="bg-accent/90 hover:bg-accent text-white px-4 rounded-lg transition-colors">
+                <i class="fa fa-plus"></i>
+              </button>
+            </div>
+            
+            <!-- 已添加的链接列表 -->
+            <div id="linksList" class="flex flex-wrap gap-2 min-h-[40px]"></div>
+          </div>
+          
+          <!-- AI对话入口 -->
+          <button id="chatWithAIBtn" class="w-full py-3 rounded-lg bg-primary/20 text-dark hover:bg-primary/30 transition-colors mb-4 flex items-center justify-center gap-2">
+            <i class="fa fa-comments-o"></i>
+            <span>与AI聊聊我的灵感</span>
+          </button>
+          
+          <!-- 生成笔记按钮 -->
+          <button id="generateNoteBtn" class="w-full py-3 rounded-lg bg-accent text-white hover:bg-accent/90 transition-colors flex items-center justify-center gap-2">
+            <i class="fa fa-magic"></i>
+            <span>生成小红书笔记</span>
+          </button>
+        </div>
+        
+        <!-- 灵感卡片列表 -->
+        <div class="mb-8">
+          <h3 class="text-lg font-medium text-dark mb-4">我的灵感库</h3>
+          <div id="inspirationCards" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- 示例灵感卡片 -->
+            <div class="bg-white rounded-xl shadow-nordic p-4 nordic-border hover:shadow-lg transition-shadow cursor-pointer">
+              <p class="text-dark/90 line-clamp-3 mb-2">今天听了一期关于时间管理的播客，学到了番茄工作法的新用法...</p>
+              <div class="flex items-center justify-between text-sm text-dark/60">
+                <span>2025.12.04</span>
+                <div class="flex gap-2">
+                  <button class="hover:text-accent transition-colors"><i class="fa fa-pencil"></i></button>
+                  <button class="hover:text-accent transition-colors"><i class="fa fa-share-alt"></i></button>
+                </div>
+              </div>
+            </div>
+            
+            <div class="bg-white rounded-xl shadow-nordic p-4 nordic-border hover:shadow-lg transition-shadow cursor-pointer">
+              <p class="text-dark/90 line-clamp-3 mb-2">在咖啡馆观察到人们的工作状态，发现环境对效率的影响很大...</p>
+              <div class="flex items-center justify-between text-sm text-dark/60">
+                <span>2025.12.03</span>
+                <div class="flex gap-2">
+                  <button class="hover:text-accent transition-colors"><i class="fa fa-pencil"></i></button>
+                  <button class="hover:text-accent transition-colors"><i class="fa fa-share-alt"></i></button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+    
+    <!-- AI对话页面 (默认隐藏) -->
+    <section id="chatPage" class="hidden fade-in max-w-2xl mx-auto">
+      <div class="flex items-center gap-2 mb-6">
+        <button id="backToInspirationBtn" class="text-dark/70 hover:text-accent transition-colors">
+          <i class="fa fa-arrow-left"></i>
+        </button>
+        <h2 class="text-xl font-medium text-dark">与AI交流灵感</h2>
+      </div>
+      
+      <!-- 对话容器 -->
+      <div id="chatContainer" class="bg-white rounded-xl shadow-nordic p-4 nordic-border h-[60vh] flex flex-col gap-4 overflow-y-auto scrollbar-hide mb-6">
+        <!-- AI欢迎消息 -->
+        <div class="flex gap-3 w-full">
+          <div class="w-8 h-8 rounded-full bg-accent/20 flex-shrink-0 flex items-center justify-center">
+            <i class="fa fa-robot text-accent"></i>
+          </div>
+          <div class="bg-neutral rounded-xl p-3 rounded-tl-none max-w-[80%]">
+            <p class="text-dark">你好！很高兴能和你聊聊你的灵感。无论是想扩展思路、深入探讨某个想法，还是需要创作建议，我都在这里帮助你。</p>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 输入区域 -->
+      <div class="flex gap-2">
+        <input 
+          id="chatInput" 
+          class="flex-1 rounded-lg nordic-border p-3 input-focus focus:outline-none text-dark"
+          placeholder="输入你想和AI交流的内容...">
+        <button id="sendChatBtn" class="bg-accent text-white p-3 rounded-lg hover:bg-accent/90 transition-colors">
+          <i class="fa fa-paper-plane"></i>
+        </button>
+      </div>
+    </section>
+    
+    <!-- 笔记生成页面 (默认隐藏) -->
+    <section id="generatePage" class="hidden fade-in max-w-2xl mx-auto">
+      <div class="flex items-center gap-2 mb-6">
+        <button id="backToGenerateBtn" class="text-dark/70 hover:text-accent transition-colors">
+          <i class="fa fa-arrow-left"></i>
+        </button>
+        <h2 class="text-xl font-medium text-dark">生成小红书笔记</h2>
+      </div>
+      
+      <!-- 风格选择 -->
+      <div class="bg-white rounded-xl shadow-nordic p-4 nordic-border mb-6">
+        <h3 class="text-dark font-medium mb-3">选择笔记风格</h3>
+        <div class="grid grid-cols-3 gap-3">
+          <button class="styleBtn active py-2 rounded-lg bg-accent/10 text-accent border border-accent/20 hover:bg-accent/20 transition-colors" data-style="thinking">
+            <i class="fa fa-lightbulb-o block mb-1"></i>
+            <span class="text-sm">思考感悟类</span>
+          </button>
+          <button class="styleBtn py-2 rounded-lg bg-neutral text-dark/70 border border-transparent hover:bg-primary/10 transition-colors" data-style="efficiency">
+            <i class="fa fa-tasks block mb-1"></i>
+            <span class="text-sm">工具效率类</span>
+          </button>
+          <button class="styleBtn py-2 rounded-lg bg-neutral text-dark/70 border border-transparent hover:bg-primary/10 transition-colors" data-style="interaction">
+            <i class="fa fa-comments block mb-1"></i>
+            <span class="text-sm">提问互动类</span>
+          </button>
+        </div>
+      </div>
+      
+      <!-- 生成按钮 -->
+      <button id="createNoteBtn" class="w-full py-3 rounded-lg bg-accent text-white hover:bg-accent/90 transition-colors flex items-center justify-center gap-2 mb-6">
+        <i class="fa fa-pencil"></i>
+        <span>立即生成笔记</span>
+      </button>
+    </section>
+    
+    <!-- 结果展示页面 (默认隐藏) -->
+    <section id="resultPage" class="hidden fade-in max-w-2xl mx-auto">
+      <div class="flex items-center justify-between mb-6">
+        <div class="flex items-center gap-2">
+          <button id="backToResultBtn" class="text-dark/70 hover:text-accent transition-colors">
+            <i class="fa fa-arrow-left"></i>
+          </button>
+          <h2 class="text-xl font-medium text-dark">小红书笔记预览</h2>
+        </div>
+        <button id="saveNoteBtn" class="bg-accent/90 hover:bg-accent text-white px-4 py-2 rounded-lg transition-colors flex items-center gap-1">
+          <i class="fa fa-save"></i>
+          <span>保存笔记</span>
+        </button>
+      </div>
+      
+      <!-- 笔记内容卡片 -->
+      <div class="bg-white rounded-xl shadow-nordic p-5 nordic-border mb-6">
+        <div class="flex justify-between items-center mb-4">
+          <span class="text-sm text-dark/60">字数: <span id="wordCount">0</span></span>
+          <div class="flex gap-2">
+            <button id="copyBtn" class="text-accent hover:text-accent/80 transition-colors text-sm flex items-center gap-1">
+              <i class="fa fa-copy"></i>
+              复制
+            </button>
+            <button id="editBtn" class="text-accent hover:text-accent/80 transition-colors text-sm flex items-center gap-1">
+              <i class="fa fa-edit"></i>
+              编辑
+            </button>
+          </div>
+        </div>
+        
+        <div id="noteContent" class="text-dark mb-6 whitespace-pre-line">
+          <!-- 生成的笔记内容会显示在这里 -->
+          🌟 时间管理的新思考 | 番茄工作法的进阶用法
+          
+          今天听完一期关于时间管理的播客，真的刷新了我对番茄工作法的认知✨
+          
+          原来不是机械地遵守25分钟工作+5分钟休息，而是要根据不同任务类型调整时间块的长度。创造性工作需要更长的专注时间，而简单的事务性工作可以缩短。
+          
+          🔑 我的几点感悟：
+          1. 灵活调整比严格遵守更重要
+          2. 记录中断原因，持续优化专注状态
+          3. 休息不是浪费时间，而是为了更高效率
+          
+          你们有什么时间管理的小技巧吗？评论区聊聊～
+          
+          #时间管理 #番茄工作法 #效率提升 #自我提升 #职场技巧
+        </div>
+        
+        <!-- 配图推荐区域 -->
+        <div>
+          <h3 class="text-dark font-medium mb-3">推荐配图</h3>
+          <div class="grid grid-cols-3 gap-2 mb-4">
+            <!-- 相册选择按钮 -->
+            <label class="relative aspect-square rounded-lg bg-neutral flex items-center justify-center cursor-pointer hover:bg-primary/10 transition-colors">
+              <input type="file" accept="image/*" multiple class="absolute opacity-0 w-full h-full">
+              <div class="text-center text-dark/70">
+                <i class="fa fa-camera text-xl block mb-1"></i>
+                <span class="text-xs">从相册选择</span>
+              </div>
+            </label>
+            
+            <!-- 示例图片 -->
+            <div class="aspect-square rounded-lg bg-secondary/20 overflow-hidden">
+              <img src="https://picsum.photos/seed/note1/300/300" alt="笔记配图" class="w-full h-full object-cover">
+            </div>
+            <div class="aspect-square rounded-lg bg-secondary/20 overflow-hidden">
+              <img src="https://picsum.photos/seed/note2/300/300" alt="笔记配图" class="w-full h-full object-cover">
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 操作按钮 -->
+      <div class="flex gap-3">
+        <button id="regenerateBtn" class="flex-1 py-3 rounded-lg bg-primary/20 text-dark hover:bg-primary/30 transition-colors">
+          重新生成
+        </button>
+        <button id="shareBtn" class="flex-1 py-3 rounded-lg bg-accent text-white hover:bg-accent/90 transition-colors">
+          分享笔记
+        </button>
+      </div>
+    </section>
+  </main>
+
+  <!-- 底部导航栏 (移动端) -->
+  <footer class="md:hidden sticky bottom-0 bg-white shadow-[0_-2px_10px_rgba(0,0,0,0.05)] py-3 px-6">
+    <div class="flex justify-around">
+      <button class="flex flex-col items-center text-accent">
+        <i class="fa fa-pencil text-lg"></i>
+        <span class="text-xs mt-1">记录灵感</span>
+      </button>
+      <button class="flex flex-col items-center text-dark/60 hover:text-accent transition-colors">
+        <i class="fa fa-comments-o text-lg"></i>
+        <span class="text-xs mt-1">AI对话</span>
+      </button>
+      <button class="flex flex-col items-center text-dark/60 hover:text-accent transition-colors">
+        <i class="fa fa-bookmark-o text-lg"></i>
+        <span class="text-xs mt-1">我的笔记</span>
+      </button>
+    </div>
+  </footer>
+
+  <!-- JavaScript 功能实现 -->
+  <script>
+    // DOM元素
+    const inspirationPage = document.getElementById('inspirationPage');
+    const chatPage = document.getElementById('chatPage');
+    const generatePage = document.getElementById('generatePage');
+    const resultPage = document.getElementById('resultPage');
+    
+    const chatWithAIBtn = document.getElementById('chatWithAIBtn');
+    const generateNoteBtn = document.getElementById('generateNoteBtn');
+    const backToInspirationBtn = document.getElementById('backToInspirationBtn');
+    const backToGenerateBtn = document.getElementById('backToGenerateBtn');
+    const backToResultBtn = document.getElementById('backToResultBtn');
+    const homeBtn = document.getElementById('homeBtn');
+    const addLinkBtn = document.getElementById('addLinkBtn');
+    const linkInput = document.getElementById('linkInput');
+    const linksList = document.getElementById('linksList');
+    const sendChatBtn = document.getElementById('sendChatBtn');
+    const chatInput = document.getElementById('chatInput');
+    const chatContainer = document.getElementById('chatContainer');
+    const createNoteBtn = document.getElementById('createNoteBtn');
+    const styleBtns = document.querySelectorAll('.styleBtn');
+    const saveNoteBtn = document.getElementById('saveNoteBtn');
+    const copyBtn = document.getElementById('copyBtn');
+    const wordCount = document.getElementById('wordCount');
+    const noteContent = document.getElementById('noteContent');
+    
+    // 链接数组
+    let links = [];
+    
+    // 页面切换函数
+    function showPage(page) {
+      inspirationPage.classList.add('hidden');
+      chatPage.classList.add('hidden');
+      generatePage.classList.add('hidden');
+      resultPage.classList.add('hidden');
+      
+      page.classList.remove('hidden');
+      page.scrollIntoView({ behavior: 'smooth' });
+    }
+    
+    // 初始化
+    document.addEventListener('DOMContentLoaded', () => {
+      // 计算初始字数
+      updateWordCount();
+      
+      // 首页按钮
+      homeBtn.addEventListener('click', () => showPage(inspirationPage));
+      
+      // AI对话按钮
+      chatWithAIBtn.addEventListener('click', () => showPage(chatPage));
+      
+      // 返回按钮
+      backToInspirationBtn.addEventListener('click', () => showPage(inspirationPage));
+      backToGenerateBtn.addEventListener('click', () => showPage(inspirationPage));
+      backToResultBtn.addEventListener('click', () => showPage(generatePage));
+      
+      // 生成笔记按钮
+      generateNoteBtn.addEventListener('click', () => showPage(generatePage));
+      
+      // 添加链接
+      addLinkBtn.addEventListener('click', addLink);
+      linkInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') addLink();
+      });
+      
+      // 发送聊天消息
+      sendChatBtn.addEventListener('click', sendChatMessage);
+      chatInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') sendChatMessage();
+      });
+      
+      // 风格选择
+      styleBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          styleBtns.forEach(b => {
+            b.classList.remove('active', 'bg-accent/10', 'text-accent', 'border-accent/20');
+            b.classList.add('bg-neutral', 'text-dark/70', 'border-transparent');
+          });
+          btn.classList.add('active', 'bg-accent/10', 'text-accent', 'border-accent/20');
+          btn.classList.remove('bg-neutral', 'text-dark/70', 'border-transparent');
+        });
+      });
+      
+      // 创建笔记
+      createNoteBtn.addEventListener('click', () => {
+        showPage(resultPage);
+        updateWordCount();
+      });
+      
+      // 保存笔记
+      saveNoteBtn.addEventListener('click', saveNote);
+      
+      // 复制笔记
+      copyBtn.addEventListener('click', copyNote);
+    });
+    
+    // 添加链接函数
+    function addLink() {
+      const link = linkInput.value.trim();
+      if (link && !links.includes(link)) {
+        links.push(link);
+        
+        // 创建链接标签
+        const linkTag = document.createElement('div');
+        linkTag.className = 'bg-neutral rounded-full px-3 py-1 flex items-center gap-2 text-sm';
+        linkTag.innerHTML = `
+          <i class="fa fa-link text-dark/60"></i>
+          <span class="truncate max-w-[150px]">${link}</span>
+          <button class="text-dark/50 hover:text-accent transition-colors" onclick="removeLink(this, '${link}')">
+            <i class="fa fa-times"></i>
+          </button>
+        `;
+        
+        linksList.appendChild(linkTag);
+        linkInput.value = '';
+      }
+    }
+    
+    // 移除链接函数
+    window.removeLink = function(btn, link) {
+      const index = links.indexOf(link);
+      if (index > -1) {
+        links.splice(index, 1);
+      }
+      btn.parentElement.remove();
+    }
+    
+    // 发送聊天消息
+    function sendChatMessage() {
+      const message = chatInput.value.trim();
+      if (message) {
+        // 添加用户消息
+        const userMessage = document.createElement('div');
+        userMessage.className = 'flex gap-3 w-full justify-end';
+        userMessage.innerHTML = `
+          <div class="bg-accent/10 rounded-xl p-3 rounded-tr-none max-w-[80%]">
+            <p class="text-dark">${message}</p>
+          </div>
+          <div class="w-8 h-8 rounded-full bg-secondary/20 flex-shrink-0 flex items-center justify-center">
+            <i class="fa fa-user-o text-dark/70"></i>
+          </div>
+        `;
+        chatContainer.appendChild(userMessage);
+        
+        chatInput.value = '';
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+        
+        // 模拟AI回复
+        setTimeout(() => {
+          const aiMessage = document.createElement('div');
+          aiMessage.className = 'flex gap-3 w-full';
+          aiMessage.innerHTML = `
+            <div class="w-8 h-8 rounded-full bg-accent/20 flex-shrink-0 flex items-center justify-center">
+              <i class="fa fa-robot text-accent"></i>
+            </div>
+            <div class="bg-neutral rounded-xl p-3 rounded-tl-none max-w-[80%]">
+              <p class="text-dark">你的想法很有意思！我觉得可以从${getRandomTopic()}角度进一步展开，这样能让笔记更有深度和吸引力。你想具体聊聊哪个方面？</p>
+            </div>
+          `;
+          chatContainer.appendChild(aiMessage);
+          chatContainer.scrollTop = chatContainer.scrollHeight;
+        }, 1000);
+      }
+    }
+    
+    // 随机话题生成
+    function getRandomTopic() {
+      const topics = ['用户痛点', '个人体验', '实用技巧', '情感共鸣', '数据支撑', '案例分析'];
+      return topics[Math.floor(Math.random() * topics.length)];
+    }
+    
+    // 更新字数统计
+    function updateWordCount() {
+      const content = noteContent.textContent || '';
+      const count = content.replace(/\s+/g, '').length;
+      wordCount.textContent = count;
+    }
+    
+    // 保存笔记
+    function saveNote() {
+      // 模拟保存成功
+      const originalText = saveNoteBtn.innerHTML;
+      saveNoteBtn.innerHTML = '<i class="fa fa-check"></i> <span>已保存</span>';
+      saveNoteBtn.classList.add('bg-primary');
+      
+      setTimeout(() => {
+        saveNoteBtn.innerHTML = originalText;
+        saveNoteBtn.classList.remove('bg-primary');
+        alert('笔记已成功保存到你的灵感库！');
+      }, 1500);
+    }
+    
+    // 复制笔记
+    function copyNote() {
+      const content = noteContent.textContent;
+      navigator.clipboard.writeText(content).then(() => {
+        const originalText = copyBtn.innerHTML;
+        copyBtn.innerHTML = '<i class="fa fa-check"></i> 已复制';
+        
+        setTimeout(() => {
+          copyBtn.innerHTML = originalText;
+        }, 1500);
+      });
+    }
+  </script>
+</body>
+</html>
